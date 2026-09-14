@@ -144,8 +144,17 @@ class CMakeBuild(build_ext):
         )
 
 
+# 龙芯 loongarch64 适配：无 CUDA 时只构建 CPU 后端（避免 _roshambo2_cuda 产物缺失报错）
+# 默认仅 CPU；需 CUDA 时设环境变量 BUILD_WITH_CUDA=ON，或在 CMAKE_ARGS 里加 -DBUILD_WITH_CUDA=ON
+_build_cuda = os.environ.get("BUILD_WITH_CUDA", "").upper() == "ON"
+if "CMAKE_ARGS" in os.environ and "BUILD_WITH_CUDA=ON" in os.environ["CMAKE_ARGS"]:
+    _build_cuda = True
+_ext_modules = [CMakeExtension("_roshambo2_cpp")]
+if _build_cuda:
+    _ext_modules.insert(0, CMakeExtension("_roshambo2_cuda"))
+
 setup(
-    ext_modules=[CMakeExtension("_roshambo2_cuda"), CMakeExtension("_roshambo2_cpp")],
+    ext_modules=_ext_modules,
     cmdclass={"build_ext": CMakeBuild},
     scripts=[
         "roshambo2/scripts/prepare_dataset_from_sdf.py",
